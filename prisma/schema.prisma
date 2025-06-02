@@ -16,6 +16,8 @@ enum UserStatus {
   BANNED
 }
 
+
+
 enum PostStatus {
   DRAFT
   PUBLISHED
