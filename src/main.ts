@@ -12,7 +12,7 @@ async function bootstrap() {
 }
 
 function displayServerInfo(port: string | number) {
-  console.log('\n🚀 ECOMMERCE BACKEND SERVER STARTED SUCCESSFULLY\n');
+  console.log('\n🚀 BLOG BACKEND SERVER STARTED SUCCESSFULLY\n');
   
   // Extract database port from DATABASE_URL
   const databaseUrl = process.env.DATABASE_URL || '';

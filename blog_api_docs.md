@@ -212,7 +212,6 @@ DELETE /api/tags/:id             # Xóa tag (auth)
 
 ### Prerequisites
 - Node.js (v20+)
-- PostgreSQL (v13+)
 - npm hoặc yarn
 
 ### Database Setup
