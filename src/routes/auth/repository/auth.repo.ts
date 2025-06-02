@@ -3,11 +3,11 @@ import { PrismaService } from '../../../shared/services/prisma.service';
 import {
   RegisterBodyType,
   RegisterResponseType,
-  UserStatus,
 } from '../model/auth.model';
 import { AuthTokens } from 'src/shared/types/jwt.type';
 import { TokenService } from 'src/shared/services/token.service';
 import { isNotFoundPrismaError } from 'src/shared/types/helper';
+import { UserStatus } from '@prisma/client';
 
 @Injectable()
 export class AuthRepository {
