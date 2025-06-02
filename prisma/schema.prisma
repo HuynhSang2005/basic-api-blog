@@ -1,12 +1,12 @@
 // Blog API Prisma Schema
-// PostgreSQL Database
+
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -26,16 +26,16 @@ enum PostStatus {
 // Users table (Người dùng)
 model User {
   id           Int       @id @default(autoincrement())
-  username     String    @unique @db.VarChar(50)
-  email        String    @unique @db.VarChar(100)
-  password     String    @db.VarChar(255)
-  fullName     String?   @map("full_name") @db.VarChar(100)
-  avatarUrl    String?   @map("avatar_url") @db.VarChar(255)
-  bio          String?   @db.Text
+  username     String    @unique
+  email        String    @unique
+  password     String
+  fullName     String?   @map("full_name")
+  avatarUrl    String?   @map("avatar_url")
+  bio          String?
   status       UserStatus @default(active)
-  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamp
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamp
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
   refreshTokens RefreshToken[]
@@ -49,11 +49,11 @@ model User {
 // Refresh Tokens table (JWT Refresh Token)
 model RefreshToken {
   id        Int      @id @default(autoincrement())
-  token     String   @unique @db.VarChar(255)
+  token     String   @unique
   userId    Int      @map("user_id")
-  expiresAt DateTime @map("expires_at") @db.Timestamp
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -67,12 +67,12 @@ model RefreshToken {
 // Categories table (Danh mục bài viết)
 model Category {
   id          Int      @id @default(autoincrement())
-  name        String   @unique @db.VarChar(100)
-  slug        String   @unique @db.VarChar(100)
-  description String?  @db.Text
-  color       String?  @db.VarChar(7) // Hex color code like #FF5733
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  color       String? // Hex color code like #FF5733
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   posts Post[]
@@ -84,18 +84,18 @@ model Category {
 // Posts table (Bài viết)
 model Post {
   id             Int         @id @default(autoincrement())
-  title          String      @db.VarChar(255)
-  slug           String      @unique @db.VarChar(255)
-  content        String      @db.Text
-  excerpt        String?     @db.Text
-  featuredImage  String?     @map("featured_image") @db.VarChar(255)
+  title          String
+  slug           String      @unique
+  content        String
+  excerpt        String?
+  featuredImage  String?     @map("featured_image")
   status         PostStatus  @default(draft)
   viewCount      Int         @default(0) @map("view_count")
   authorId       Int         @map("author_id")
   categoryId     Int?        @map("category_id")
-  publishedAt    DateTime?   @map("published_at") @db.Timestamp
-  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamp
-  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamp
+  publishedAt    DateTime?   @map("published_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
 
   // Relations
   author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -113,9 +113,9 @@ model Post {
 // Tags table (Thẻ tag)
 model Tag {
   id        Int       @id @default(autoincrement())
-  name      String    @unique @db.VarChar(50)
-  slug      String    @unique @db.VarChar(50)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
 
   // Relations
   postTags PostTag[]
@@ -129,7 +129,7 @@ model PostTag {
   id        Int      @id @default(autoincrement())
   postId    Int      @map("post_id")
   tagId     Int      @map("tag_id")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: Cascade)
