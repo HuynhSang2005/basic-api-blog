@@ -1,7 +1,6 @@
 import { z } from "zod"
 import { UserSchema } from "src/shared/model/shared-user.model"
 
-
 export type UserType = z.infer<typeof UserSchema>
 
 // Register Request Schema
@@ -54,6 +53,14 @@ export const LoginResponseSchema = z.object({
 })
 
 export type LoginResponseType = z.infer<typeof LoginResponseSchema>
+
+// ← THÊM TokenResponseType (chỉ chứa tokens)
+export const TokenResponseSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+})
+
+export type TokenResponseType = z.infer<typeof TokenResponseSchema>
 
 // Refresh Token Request Schema
 export const RefreshTokenBodySchema = z.object({

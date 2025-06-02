@@ -85,9 +85,11 @@ export class AuthService {
     return {
       user: {
         ...userWithoutPassword,
+        role: user.role, 
+        status: user.status, 
         createdAt: user.createdAt?.toISOString(),
         updatedAt: user.updatedAt?.toISOString(),
-        deletedAt: user.deletedAt?.toISOString() ?? null,
+        deletedAt: null, 
       },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,

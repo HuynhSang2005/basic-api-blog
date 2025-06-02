@@ -3,11 +3,12 @@ import { PrismaService } from '../../../shared/services/prisma.service';
 import {
   RegisterBodyType,
   RegisterResponseType,
+  TokenResponseType 
 } from '../model/auth.model';
-import { AuthTokens } from 'src/shared/types/jwt.type';
-import { TokenService } from 'src/shared/services/token.service';
-import { isNotFoundPrismaError } from 'src/shared/types/helper';
-import { UserStatus } from '@prisma/client';
+import { TokenPayload, RefreshTokenPayload } from '../../../shared/types/jwt.type';
+import { TokenService } from '../../../shared/services/token.service';
+import { isNotFoundPrismaError } from '../../../shared/types/helper';
+import { UserStatus, UserRole } from '@prisma/client'; // ← THÊM UserRole
 
 @Injectable()
 export class AuthRepository {
@@ -16,39 +17,105 @@ export class AuthRepository {
     private readonly tokenService: TokenService,
   ) {}
 
-  async generateToken(payload: { userId: number }): Promise<AuthTokens> {
-    const [accessToken, refreshToken] = await Promise.all([
-      this.tokenService.signAccessToken(payload),
-      this.tokenService.signRefreshToken(payload),
-    ]);
+  async generateToken(payload: { userId: number }): Promise<TokenResponseType> {
+    // Lấy thông tin user để include role vào JWT
+    const user = await this.prismaService.user.findUnique({
+      where: { id: payload.userId },
+      select: { 
+        id: true, 
+        username: true, 
+        role: true,
+        status: true
+      }
+    });
 
-    const refreshTokenExpiresAt = new Date();
-    refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 30);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-    await this.prismaService.refreshToken.create({
+    // Kiểm tra user status
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('Tài khoản đã bị khóa hoặc không hoạt động');
+    }
+
+    // Tạo JWT payload với role
+    const jwtPayload: TokenPayload = {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+    };
+
+    // Tạo refresh token record trước
+    const refreshTokenRecord = await this.prismaService.refreshToken.create({
       data: {
-        token: refreshToken,
+        token: '', // Tạm thời để trống, sẽ update sau
         userId: payload.userId,
-        expiresAt: refreshTokenExpiresAt,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
       },
     });
 
-    return { accessToken, refreshToken };
+    // Tạo refresh token payload
+    const refreshTokenPayload: RefreshTokenPayload = {
+      userId: payload.userId,
+      refreshTokenId: refreshTokenRecord.id,
+    };
+
+    // Generate cả 2 tokens
+    const [accessToken, refreshTokenString] = await Promise.all([
+      this.tokenService.signAccessToken(jwtPayload),
+      this.tokenService.signRefreshToken(refreshTokenPayload),
+    ]);
+
+    // Update refresh token với string đã generate
+    await this.prismaService.refreshToken.update({
+      where: { id: refreshTokenRecord.id },
+      data: { token: refreshTokenString },
+    });
+
+    return {
+      accessToken,
+      refreshToken: refreshTokenString,
+    };
   }
 
-  async refreshToken(refreshToken: string) {
+  async refreshToken(refreshToken: string): Promise<TokenResponseType> {
     try {
-      const { userId } = await this.tokenService.verifyRefreshToken(refreshToken);
+      // Verify refresh token và lấy payload
+      const refreshPayload = await this.tokenService.verifyRefreshToken(refreshToken);
       
-      await this.prismaService.refreshToken.findUniqueOrThrow({
-        where: { token: refreshToken },
+      // Kiểm tra refresh token tồn tại trong database
+      const tokenRecord = await this.prismaService.refreshToken.findUniqueOrThrow({
+        where: { 
+          token: refreshToken,
+          id: refreshPayload.refreshTokenId
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              status: true,
+            }
+          }
+        }
       });
 
+      // Kiểm tra user status
+      if (tokenRecord.user.status !== UserStatus.ACTIVE) {
+        throw new UnauthorizedException('Tài khoản đã bị khóa hoặc không hoạt động');
+      }
+
+      // Kiểm tra token đã hết hạn chưa
+      if (tokenRecord.expiresAt < new Date()) {
+        throw new UnauthorizedException('Refresh token đã hết hạn');
+      }
+
+      // Xóa refresh token cũ (rotation)
       await this.prismaService.refreshToken.delete({
-        where: { token: refreshToken },
+        where: { id: tokenRecord.id },
       });
 
-      return await this.generateToken({ userId });
+      // Tạo tokens mới
+      return await this.generateToken({ userId: refreshPayload.userId });
     } catch (error) {
       if (isNotFoundPrismaError(error)) {
         throw new UnauthorizedException('Refresh token không tồn tại hoặc đã hết hạn.');
@@ -57,12 +124,17 @@ export class AuthRepository {
     }
   }
 
-  async logout(refreshToken: string) {
+  async logout(refreshToken: string): Promise<{ message: string }> {
     try {
-      await this.tokenService.verifyRefreshToken(refreshToken);
+      // Verify refresh token
+      const refreshPayload = await this.tokenService.verifyRefreshToken(refreshToken);
       
+      // Xóa refresh token khỏi database
       await this.prismaService.refreshToken.delete({
-        where: { token: refreshToken },
+        where: { 
+          token: refreshToken,
+          id: refreshPayload.refreshTokenId
+        },
       });
 
       return { message: 'Đăng xuất thành công.' };
@@ -77,10 +149,23 @@ export class AuthRepository {
   async findUserByEmail(email: string) {
     return await this.prismaService.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        password: true,
+        fullName: true,
+        avatarUrl: true,
+        role: true,
+        status: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      }
     });
   }
 
-  async updateLastLogin(userId: number) {
+  async updateLastLogin(userId: number): Promise<void> {
     await this.prismaService.user.update({
       where: { id: userId },
       data: { lastLoginAt: new Date() },
@@ -91,12 +176,18 @@ export class AuthRepository {
     userData: Omit<RegisterBodyType, 'confirmPassword'>,
   ): Promise<RegisterResponseType> {
     const user = await this.prismaService.user.create({
-      data: userData,
+      data: {
+        ...userData,
+        role: UserRole.USER, 
+        status: UserStatus.ACTIVE,
+      },
       select: {
         id: true,
         email: true,
         username: true,
+        fullName: true,
         avatarUrl: true,
+        role: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -105,14 +196,33 @@ export class AuthRepository {
       },
     });
 
-    const result = {
-      ...user,
-      status: user.status as UserStatus,
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      fullName: user.fullName,
+      avatarUrl: user.avatarUrl,
+      role: user.role, 
+      status: user.status,
       createdAt: user.createdAt?.toISOString(),
       updatedAt: user.updatedAt?.toISOString(),
       deletedAt: user.deletedAt?.toISOString() ?? null,
     };
+  }
 
-    return result;
+  async cleanupExpiredTokens(): Promise<void> {
+    await this.prismaService.refreshToken.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        }
+      }
+    });
+  }
+
+  async revokeAllUserTokens(userId: number): Promise<void> {
+    await this.prismaService.refreshToken.deleteMany({
+      where: { userId }
+    });
   }
 }
