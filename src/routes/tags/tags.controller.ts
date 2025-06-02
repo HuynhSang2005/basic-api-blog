@@ -23,13 +23,14 @@ import {
 } from './dto/tags.dto';
 import { Auth } from '../../common/decorators/validators/auth-guard/auth.decorators';
 import { AuthType } from '../../shared/constants/auth.constant';
+import { AdminOnlyAccess } from '../../common/decorators/validators/auth-guard/combined.decorators'; // ← FIX IMPORT
 
 @Controller('tags')
 export class TagsController {
   constructor(private readonly tagsService: TagsService) {}
 
   @Post()
-  @Auth([AuthType.Bear]) // Cần đăng nhập để tạo tag
+  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI TẠO ĐƯỢC TAG
   @ZodSerializerDto(TagResponseDto)
   async createTag(@Body() createData: CreateTagDto) {
     return await this.tagsService.createTag(createData);
@@ -71,7 +72,7 @@ export class TagsController {
   }
 
   @Put(':id')
-  @Auth([AuthType.Bear]) 
+  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI CẬP NHẬT ĐƯỢC TAG
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(TagResponseDto)
   async updateTag(
@@ -82,7 +83,7 @@ export class TagsController {
   }
 
   @Delete(':id')
-  @Auth([AuthType.Bear]) 
+  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI XÓA ĐƯỢC TAG
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTag(@Param('id', ParseIntPipe) id: number) {
     await this.tagsService.deleteTag(id);

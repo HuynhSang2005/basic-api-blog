@@ -4,7 +4,7 @@ import { UserRole } from '@prisma/client';
 import { REQUEST_USER_KEY } from '../../shared/constants/auth.constant';
 import { TokenPayload } from '../../shared/types/jwt.type';
 
-export const ROLES_KEY = 'roles';
+export const ROLES_KEY = 'roles'; 
 
 @Injectable()
 export class RoleGuard implements CanActivate {

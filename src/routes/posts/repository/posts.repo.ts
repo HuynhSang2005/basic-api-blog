@@ -607,4 +607,400 @@ export class PostsRepository {
       archived,
     };
   }
+
+  /**
+   * Admin-only update post (không check ownership)
+   */
+  async updatePostAsAdmin(id: number, data: UpdatePostType): Promise<PostResponseType> {
+    // Kiểm tra post tồn tại
+    const existingPost = await this.prismaService.post.findUnique({
+      where: { id },
+      select: { id: true, title: true }
+    });
+
+    if (!existingPost) {
+      throw new NotFoundException('Bài viết không tồn tại.');
+    }
+
+    // Kiểm tra category tồn tại (nếu có thay đổi)
+    if (data.categoryId) {
+      const category = await this.prismaService.category.findUnique({
+        where: { id: data.categoryId }
+      });
+
+      if (!category) {
+        throw new NotFoundException('Danh mục không tồn tại.');
+      }
+    }
+
+    // Kiểm tra tags tồn tại (nếu có)
+    if (data.tagIds && data.tagIds.length > 0) {
+      const existingTags = await this.prismaService.tag.findMany({
+        where: { id: { in: data.tagIds } }
+      });
+
+      if (existingTags.length !== data.tagIds.length) {
+        throw new NotFoundException('Một hoặc nhiều tag không tồn tại.');
+      }
+    }
+
+    // Tạo slug mới nếu title thay đổi
+    let slug: string | undefined;
+    if (data.title && data.title !== existingPost.title) {
+      slug = await this.checkDuplicateSlug(data.title, id);
+    }
+
+    // Chuẩn bị data update
+    const { tagIds, ...updateData } = data;
+    const postUpdateData: any = { ...updateData };
+    
+    if (slug) {
+      postUpdateData.slug = slug;
+    }
+
+    // Set publishedAt nếu chuyển sang PUBLISHED
+    if (data.status === PostStatus.PUBLISHED) {
+      postUpdateData.publishedAt = new Date();
+    }
+
+    // Update post (ADMIN - không check authorId)
+    const updatedPost = await this.prismaService.post.update({
+      where: { id },
+      data: postUpdateData,
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatarUrl: true,
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+          }
+        },
+        postTags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Update tags nếu có
+    if (tagIds !== undefined) {
+      // Xóa tags cũ
+      await this.prismaService.postTag.deleteMany({
+        where: { postId: id }
+      });
+
+      // Thêm tags mới
+      if (tagIds.length > 0) {
+        await this.prismaService.postTag.createMany({
+          data: tagIds.map(tagId => ({
+            postId: id,
+            tagId
+          }))
+        });
+      }
+
+      // Lấy lại post với tags mới
+      const postWithNewTags = await this.prismaService.post.findUnique({
+        where: { id },
+        include: {
+          author: {
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              avatarUrl: true,
+            }
+          },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              color: true,
+            }
+          },
+          postTags: {
+            include: {
+              tag: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                }
+              }
+            }
+          }
+        }
+      });
+
+      return this.formatPostResponse(postWithNewTags);
+    }
+
+    return this.formatPostResponse(updatedPost);
+  }
+
+  /**
+   * Admin-only delete post (không check ownership)
+   */
+  async deletePostAsAdmin(id: number): Promise<void> {
+    // Kiểm tra post tồn tại
+    const existingPost = await this.prismaService.post.findUnique({
+      where: { id },
+      select: { id: true }
+    });
+
+    if (!existingPost) {
+      throw new NotFoundException('Bài viết không tồn tại.');
+    }
+
+    // Xóa post tags trước
+    await this.prismaService.postTag.deleteMany({
+      where: { postId: id }
+    });
+
+    // Xóa post (ADMIN - không check authorId)
+    await this.prismaService.post.delete({
+      where: { id }
+    });
+  }
+
+  /**
+   * Admin-only publish post (không check ownership)
+   */
+  async publishPostAsAdmin(id: number, data: PublishPostType): Promise<PostResponseType> {
+    // Kiểm tra post tồn tại
+    const existingPost = await this.prismaService.post.findUnique({
+      where: { id },
+      select: { id: true, status: true }
+    });
+
+    if (!existingPost) {
+      throw new NotFoundException('Bài viết không tồn tại.');
+    }
+
+    const publishedAt = data.publishedAt ? new Date(data.publishedAt) : new Date();
+
+    const post = await this.prismaService.post.update({
+      where: { id },
+      data: {
+        status: PostStatus.PUBLISHED,
+        publishedAt,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatarUrl: true,
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+          }
+        },
+        postTags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return this.formatPostResponse(post);
+  }
+
+  /**
+   * Admin-only: Change post status
+   */
+  async changePostStatusAsAdmin(id: number, status: PostStatus): Promise<PostResponseType> {
+    // Kiểm tra post tồn tại
+    const existingPost = await this.prismaService.post.findUnique({
+      where: { id },
+      select: { id: true, status: true }
+    });
+
+    if (!existingPost) {
+      throw new NotFoundException('Bài viết không tồn tại.');
+    }
+
+    const updateData: any = { status };
+
+    // Set publishedAt nếu chuyển sang PUBLISHED
+    if (status === PostStatus.PUBLISHED && existingPost.status !== PostStatus.PUBLISHED) {
+      updateData.publishedAt = new Date();
+    }
+
+    // Clear publishedAt nếu chuyển về DRAFT hoặc ARCHIVED
+    if (status !== PostStatus.PUBLISHED) {
+      updateData.publishedAt = null;
+    }
+
+    const post = await this.prismaService.post.update({
+      where: { id },
+      data: updateData,
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatarUrl: true,
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+          }
+        },
+        postTags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return this.formatPostResponse(post);
+  }
+
+  /**
+   * Admin-only: Lấy tất cả posts (bao gồm drafts của authors)
+   */
+  async getAllPostsForAdmin(query: PostQueryType): Promise<PostListType> {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      status,
+      categoryId,
+      authorId,
+      tagId,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = query;
+
+    const skip = (page - 1) * limit;
+
+    // Điều kiện where cho admin (có thể xem tất cả posts)
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
+        { excerpt: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+
+    if (authorId) {
+      where.authorId = authorId;
+    }
+
+    if (tagId) {
+      where.postTags = {
+        some: {
+          tagId: tagId
+        }
+      };
+    }
+
+    // Count total posts
+    const total = await this.prismaService.post.count({ where });
+
+    // Get posts với pagination
+    const posts = await this.prismaService.post.findMany({
+      where,
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatarUrl: true,
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+          }
+        },
+        postTags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        [sortBy]: sortOrder
+      },
+      skip,
+      take: limit,
+    });
+
+    const formattedPosts = posts.map(post => this.formatPostResponse(post));
+
+    return {
+      posts: formattedPosts,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      }
+    };
+  }
+
 }

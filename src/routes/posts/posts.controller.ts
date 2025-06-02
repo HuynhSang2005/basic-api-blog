@@ -26,46 +26,57 @@ import { Auth } from '../../common/decorators/validators/auth-guard/auth.decorat
 import { AuthType } from '../../shared/constants/auth.constant';
 import { ActiveUser } from '../../common/decorators/validators/auth-guard/active-user.decorators';
 import { TokenPayload } from '../../shared/types/jwt.type';
+import { 
+  AuthorOrAdmin, 
+  AuthorWithOwnership, 
+  AdminOnlyAccess 
+} from '../../common/decorators/validators/auth-guard/combined.decorators'; 
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Post()
-  @Auth([AuthType.Bear]) 
+  @AuthorOrAdmin() // ← CHỈ AUTHOR/ADMIN MỚI TẠO ĐƯỢC POST
   @ZodSerializerDto(PostResponseDto)
   async createPost(
     @Body() createData: CreatePostDto,
     @ActiveUser() user: TokenPayload
   ) {
-    // Convert DTO to Type
     return await this.postsService.createPost(createData as any, user.userId);
   }
 
   @Get()
-  @Auth([AuthType.None]) // Public route
+  @Auth([AuthType.None]) // Public route - để user đọc blog
   @ZodSerializerDto(PostListDto)
   async getPosts(@Query() query: PostQueryDto) {
-    // Convert DTO to Type
     return await this.postsService.getPosts(query as any);
   }
 
   @Get('stats')
-  @Auth([AuthType.Bear]) 
+  @AuthorOrAdmin() // ← CHỈ AUTHOR/ADMIN MỚI XEM ĐƯỢC STATS
   @ZodSerializerDto(PostStatsDto)
   async getPostStats(@ActiveUser() user: TokenPayload) {
-    return await this.postsService.getPostStats(user.userId);
+    // Author chỉ xem stats của mình, Admin xem tất cả
+    const userId = user.role === 'ADMIN' ? undefined : user.userId;
+    return await this.postsService.getPostStats(userId);
   }
 
   @Get('my')
-  @Auth([AuthType.Bear]) // Lấy bài viết của user hiện tại
+  @AuthorOrAdmin() // ← CHỈ AUTHOR/ADMIN MỚI XEM ĐƯỢC POSTS CỦA MÌNH
   @ZodSerializerDto(PostListDto)
   async getMyPosts(
     @Query() query: PostQueryDto,
     @ActiveUser() user: TokenPayload
   ) {
-    // Convert DTO to Type
     return await this.postsService.getMyPosts(query as any, user.userId);
+  }
+
+  @Get('admin/all')
+  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI XEM ĐƯỢC TẤT CẢ POSTS (including drafts của authors)
+  @ZodSerializerDto(PostListDto)
+  async getAllPostsAdmin(@Query() query: PostQueryDto) {
+    return await this.postsService.getAllPostsForAdmin(query as any);
   }
 
   @Get(':id')
@@ -83,7 +94,7 @@ export class PostsController {
   }
 
   @Put(':id')
-  @Auth([AuthType.Bear]) // Cần đăng nhập và là chủ sở hữu
+  @AuthorWithOwnership() // ← AUTHOR với ownership check, ADMIN có thể edit tất cả
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(PostResponseDto)
   async updatePost(
@@ -91,12 +102,11 @@ export class PostsController {
     @Body() updateData: UpdatePostDto,
     @ActiveUser() user: TokenPayload
   ) {
-    // Convert DTO to Type
-    return await this.postsService.updatePost(id, updateData as any, user.userId);
+    return await this.postsService.updatePost(id, updateData as any, user.userId, user.role);
   }
 
   @Put(':id/publish')
-  @Auth([AuthType.Bear]) // Cần đăng nhập và là chủ sở hữu
+  @AuthorWithOwnership() // ← AUTHOR với ownership check cho publish
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(PostResponseDto)
   async publishPost(
@@ -104,17 +114,46 @@ export class PostsController {
     @Body() publishData: PublishPostDto,
     @ActiveUser() user: TokenPayload
   ) {
-    // Convert DTO to Type
-    return await this.postsService.publishPost(id, publishData as any, user.userId);
+    return await this.postsService.publishPost(id, publishData as any, user.userId, user.role);
+  }
+
+  @Put('admin/:id/force-publish')
+  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI FORCE PUBLISH BẤT KỲ POST NÀO
+  @HttpCode(HttpStatus.OK)
+  @ZodSerializerDto(PostResponseDto)
+  async forcePublishPost(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() publishData: PublishPostDto,
+    @ActiveUser() user: TokenPayload
+  ) {
+    return await this.postsService.forcePublishPost(id, publishData as any);
+  }
+
+  @Put('admin/:id/status')
+  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI THAY ĐỔI STATUS BẤT KỲ POST NÀO
+  @HttpCode(HttpStatus.OK)
+  @ZodSerializerDto(PostResponseDto)
+  async changePostStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() statusData: { status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' }
+  ) {
+    return await this.postsService.changePostStatus(id, statusData.status);
   }
 
   @Delete(':id')
-  @Auth([AuthType.Bear]) 
+  @AuthorWithOwnership() // ← AUTHOR với ownership check cho delete
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePost(
     @Param('id', ParseIntPipe) id: number,
     @ActiveUser() user: TokenPayload
   ) {
-    await this.postsService.deletePost(id, user.userId);
+    await this.postsService.deletePost(id, user.userId, user.role);
+  }
+
+  @Delete('admin/:id/force-delete')
+  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI FORCE DELETE BẤT KỲ POST NÀO
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async forceDeletePost(@Param('id', ParseIntPipe) id: number) {
+    await this.postsService.forceDeletePost(id);
   }
 }
