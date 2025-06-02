@@ -1,0 +1,99 @@
+import { z } from "zod"
+import { UserStatus as PrismaUserStatus } from '@prisma/client' 
+export { UserStatus } from '@prisma/client'
+
+// Base User Schema
+export const UserSchema = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  username: z.string().min(1).max(100),
+  password: z.string().min(6).max(100),
+  fullName: z.string().min(1).max(200).nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
+  status: z.nativeEnum(PrismaUserStatus).default(PrismaUserStatus.ACTIVE), 
+  createdAt: z.date().optional(), 
+  updatedAt: z.date().optional(),
+  deletedAt: z.date().nullable().optional(),
+})
+
+export type UserType = z.infer<typeof UserSchema>
+
+// Register Request Schema
+export const RegisterBodySchema = UserSchema
+  .pick({
+    email: true,
+    username: true,
+    password: true,
+    })
+  .extend({
+    confirmPassword: z.string().min(6).max(100),
+  })
+  .strict()
+  .superRefine(({ password, confirmPassword }, ctx) => {
+    if (password !== confirmPassword) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Mật khẩu xác nhận không khớp',
+        path: ['confirmPassword'],
+      })
+    }
+  })
+
+export type RegisterBodyType = z.infer<typeof RegisterBodySchema>
+
+// Register Response Schema
+export const RegisterResponseSchema = UserSchema.omit({
+  password: true,
+}).extend({
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  deletedAt: z.string().nullable().optional(),
+})
+
+export type RegisterResponseType = z.infer<typeof RegisterResponseSchema>
+
+// Login Request Schema
+export const LoginBodySchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+})
+
+export type LoginBodyType = z.infer<typeof LoginBodySchema>
+
+// Login Response Schema
+export const LoginResponseSchema = z.object({
+  user: RegisterResponseSchema,
+  accessToken: z.string(),
+  refreshToken: z.string(),
+})
+
+export type LoginResponseType = z.infer<typeof LoginResponseSchema>
+
+// Refresh Token Request Schema
+export const RefreshTokenBodySchema = z.object({
+  refreshToken: z.string(),
+})
+
+export type RefreshTokenBodyType = z.infer<typeof RefreshTokenBodySchema>
+
+// Refresh Token Response Schema
+export const RefreshTokenResponseSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+})
+
+export type RefreshTokenResponseType = z.infer<typeof RefreshTokenResponseSchema>
+
+// Logout Request Schema
+export const LogoutBodySchema = z.object({
+  refreshToken: z.string(),
+})
+
+export type LogoutBodyType = z.infer<typeof LogoutBodySchema>
+
+// User Public Schema
+export const UserPublicSchema = UserSchema.omit({
+  password: true,
+})
+
+export type UserPublicType = z.infer<typeof UserPublicSchema>

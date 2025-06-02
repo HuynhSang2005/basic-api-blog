@@ -1,14 +1,16 @@
 import { z } from 'zod';
 import { config } from 'dotenv';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path'; 
+
+const envPath = path.resolve(process.cwd(), '.env');
 
 config({
-  path: '.env',
-})
+  path: envPath,
+});
 
 // Kiểm tra file .env có tồn tại không
-if (!fs.existsSync(path.resolve('.env'))) {
+if (!fs.existsSync(envPath)) {
   console.error('❌ File .env không tồn tại.');
   process.exit(1);
 }
@@ -24,9 +26,9 @@ const configSchema = z.object({
 
 const configServer = configSchema.safeParse(process.env);
 
-if(!configServer.success) {
+if (!configServer.success) {
   console.log('Các giá trị trong file .env không hợp lệ:');
-  console.log(configServer.error.format())
+  console.log(configServer.error.format());
   process.exit(1);
 }
 
