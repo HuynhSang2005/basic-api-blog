@@ -8,7 +8,7 @@ import {
 import { TokenPayload, RefreshTokenPayload } from '../../../shared/types/jwt.type';
 import { TokenService } from '../../../shared/services/token.service';
 import { isNotFoundPrismaError } from '../../../shared/types/helper';
-import { UserStatus, UserRole } from '@prisma/client'; // ← THÊM UserRole
+import { UserStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class AuthRepository {
@@ -178,7 +178,7 @@ export class AuthRepository {
     const user = await this.prismaService.user.create({
       data: {
         ...userData,
-        role: UserRole.USER, 
+        role: UserRole.USER, // ← SỬA: Dùng enum thay vì string
         status: UserStatus.ACTIVE,
       },
       select: {

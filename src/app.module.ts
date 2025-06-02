@@ -6,7 +6,7 @@ import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { AuthModule } from './routes/auth/auth.module';
-import { UsersModule } from './routes/users/user.module';
+import { UsersModule } from './routes/users/users.module';
 import { TagsModule } from './routes/tags/tags.module';
 
 @Module({

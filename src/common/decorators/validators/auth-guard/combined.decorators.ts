@@ -1,10 +1,10 @@
 import { applyDecorators, UseGuards } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { Auth } from './auth.decorators';
-import { Roles } from './role.decorators'; 
-import { AuthType } from '../../../../shared/constants/auth.constant'; // ← FIX PATH
+import { AuthType } from '../../../../shared/constants/auth.constant';
 import { RoleGuard } from '../../../guards/role.guard';
-import { PostOwnershipGuard } from '../../../guards/post-ownership.guard'; // ← FIX PATH
+import { Roles } from './role.decorators';
+import { PostOwnershipGuard } from 'src/common/guards/post-ownership.guard';
 
 /**
  * Decorator kết hợp Authentication + Admin Role

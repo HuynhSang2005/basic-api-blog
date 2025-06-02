@@ -22,7 +22,7 @@ import { PostOwnershipGuard } from './guards/post-ownership.guard';
     AccessTokenGuard, 
     AuthenticationGuard, 
     RoleGuard, 
-    PostOwnershipGuard 
+    PostOwnershipGuard
   ],
 })
 export class CommonModule {}

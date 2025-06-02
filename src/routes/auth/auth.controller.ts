@@ -16,8 +16,8 @@ import {
   RefreshTokenResponseDto,
   LogoutBodyDto
 } from './dto/auth.dto';
-import { AuthType } from 'src/shared/constants/auth.constant';
-import { Auth } from 'src/common/decorators/validators/auth-guard/auth.decorators';
+import { AuthType } from '../../shared/constants/auth.constant'; 
+import { Auth } from '../../common/decorators/validators/auth-guard/auth.decorators'; // ← FIX IMPORT PATH
 
 @Controller('auth')
 export class AuthController {
