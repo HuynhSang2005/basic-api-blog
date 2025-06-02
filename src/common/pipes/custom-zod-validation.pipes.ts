@@ -1,18 +1,29 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { createZodValidationPipe } from 'nestjs-zod';
-import { ZodError } from 'zod';
+import { ZodError, ZodIssue } from 'zod';
 
 const CustomZodValidationPipe = createZodValidationPipe({
-  // provide custom validation exception factory
-  createValidationException: (error: ZodError) =>
-    new UnprocessableEntityException({
-      message: 'Validation failed',
-      errors: error.errors.map((issue) => ({
-        ...issue,
-        field: issue.path.join('.'),
+  createValidationException: (error: ZodError) => {
+    const formattedErrors = error.errors.map((issue: ZodIssue) => {
+      const field = issue.path.length > 0 ? issue.path.join('.') : 'body';
+      const value = 'received' in issue ? issue.received : null;
+      
+      return {
+        field: field,
         message: issue.message,
-      })),
-    }),
+        code: issue.code,
+        value: value,
+        path: issue.path,
+      };
+    });
+
+    return new BadRequestException({
+      message: 'Dữ liệu không hợp lệ',
+      statusCode: 400,
+      error: 'Bad Request',
+      details: formattedErrors,
+    });
+  },
 });
 
 export default CustomZodValidationPipe;

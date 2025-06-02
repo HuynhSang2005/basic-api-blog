@@ -1,6 +1,5 @@
 // Blog API Prisma Schema
 
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,30 +11,31 @@ datasource db {
 
 // Enum definitions
 enum UserStatus {
-  active
-  inactive
-  banned
+  ACTIVE
+  INACTIVE
+  BANNED
 }
 
 enum PostStatus {
-  draft
-  published
-  archived
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
 }
 
 // Users table (Người dùng)
 model User {
   id           Int       @id @default(autoincrement())
   username     String    @unique
+  password    String     
   email        String    @unique
-  password     String
   fullName     String?   @map("full_name")
   avatarUrl    String?   @map("avatar_url")
-  bio          String?
-  status       UserStatus @default(active)
+  status       UserStatus @default(ACTIVE)
   lastLoginAt  DateTime? @map("last_login_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   // Relations
   refreshTokens RefreshToken[]
@@ -89,7 +89,7 @@ model Post {
   content        String
   excerpt        String?
   featuredImage  String?     @map("featured_image")
-  status         PostStatus  @default(draft)
+  status         PostStatus  @default(DRAFT)
   viewCount      Int         @default(0) @map("view_count")
   authorId       Int         @map("author_id")
   categoryId     Int?        @map("category_id")
