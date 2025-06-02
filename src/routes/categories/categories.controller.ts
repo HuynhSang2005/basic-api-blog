@@ -28,7 +28,7 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  @Auth([AuthType.Bear]) // Cần đăng nhập để tạo category
+  @Auth([AuthType.Bear])
   @ZodSerializerDto(CategoryResponseDto)
   async createCategory(@Body() createData: CreateCategoryDto) {
     return await this.categoriesService.createCategory(createData);
@@ -56,7 +56,7 @@ export class CategoriesController {
   }
 
   @Put(':id')
-  @Auth([AuthType.Bear]) // Cần đăng nhập để cập nhật
+  @Auth([AuthType.Bear])
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(CategoryResponseDto)
   async updateCategory(
@@ -67,7 +67,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
-  @Auth([AuthType.Bear]) // Cần đăng nhập để xóa
+  @Auth([AuthType.Bear])
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteCategory(@Param('id', ParseIntPipe) id: number) {
     await this.categoriesService.deleteCategory(id);
