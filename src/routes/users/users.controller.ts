@@ -89,7 +89,6 @@ export class UsersController {
     return await this.usersService.updateUserStatus(id, statusData.status);
   }
 
-  // ← THÊM ADMIN METHOD ĐỂ PROMOTE USER TO AUTHOR
   @Put('admin/:id/promote-to-author')
   @AdminOnlyAccess() // ← CHỈ ADMIN MỚI PROMOTE USER THÀNH AUTHOR
   @HttpCode(HttpStatus.OK)

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { UserSchema } from "../../../shared/model/shared-user.model" // ← FIX IMPORT PATH
+import { UserSchema } from "../../../shared/model/shared-user.model" 
 
 export type UserType = z.infer<typeof UserSchema>
 

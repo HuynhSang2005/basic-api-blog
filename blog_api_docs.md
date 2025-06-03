@@ -140,7 +140,7 @@ Quan hệ nhiều-nhiều giữa Posts và Tags.
 2. Client gửi Refresh Token
 3. Verify Refresh Token từ database (check tồn tại và chưa hết hạn)
 4. Tạo Access Token mới
-5. Optional: Rotate Refresh Token (tạo refresh token mới, xóa token cũ)
+5. Refresh Token (tạo refresh token mới, xóa token cũ)
 
 ## 📡 API Endpoints Structure
 
@@ -152,10 +152,6 @@ POST /api/auth/login             # Đăng nhập
 POST /api/auth/logout            # Đăng xuất (xóa refresh token)
 POST /api/auth/refresh-token     # Refresh access token
 
-POST /api/auth/register          # Đăng ký tài khoản
-POST /api/auth/login             # Đăng nhập
-POST /api/auth/logout            # Đăng xuất 
-POST /api/auth/refresh-token     # Refresh access token
 ```
 
 ### User Management

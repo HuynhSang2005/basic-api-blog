@@ -4,7 +4,6 @@ import { AuthController } from './auth.controller';
 import { AuthRepository } from './repository/auth.repo';
 
 @Module({
-  // imports: [AccessTokenGuard, AuthenticationGuard],
   controllers: [AuthController],
   providers: [AuthService, AuthRepository],
 })

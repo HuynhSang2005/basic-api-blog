@@ -49,7 +49,7 @@ model User {
 
   @@index([email])
   @@index([status])
-  @@index([role])  // ← THÊM INDEX CHO ROLE
+  @@index([role])  
   @@map("users")
 }
 

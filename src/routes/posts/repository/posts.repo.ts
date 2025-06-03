@@ -182,94 +182,118 @@ export class PostsRepository {
     return this.formatPostResponse(post);
   }
 
+
   async getPosts(query: PostQueryType): Promise<PostListType> {
-    const { page, limit, search, status, categoryId, authorId, tagId, sortBy, sortOrder } = query;
-    const skip = (page - 1) * limit;
+  const { 
+    page = 1, 
+    limit = 10, 
+    search, 
+    status, 
+    categoryId, 
+    authorId, 
+    tagId, 
+    sortBy = 'createdAt', 
+    sortOrder = 'desc' 
+  } = query;
+  
+  const skip = (page - 1) * limit;
 
-    // Build where conditions
-    const where: any = {};
+  const where: any = {};
 
-    if (search) {
-      where.OR = [
-        { title: { contains: search } },
-        { content: { contains: search } },
-        { excerpt: { contains: search } },
-      ];
-    }
+  if (search && search.trim()) {
+    where.OR = [
+      { 
+        title: { 
+          contains: search.trim()
+        } 
+      },
+      { 
+        content: { 
+          contains: search.trim()
+        } 
+      },
+    ];
+  }
 
-    if (status) {
-      where.status = status;
-    }
+  // Filter theo status - mặc định chỉ published cho public
+  if (status) {
+    where.status = status;
+  } else {
+    where.status = PostStatus.PUBLISHED;
+  }
 
-    if (categoryId) {
-      where.categoryId = categoryId;
-    }
+  // Filter đơn giản theo category
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
 
-    if (authorId) {
-      where.authorId = authorId;
-    }
+  // Filter theo author
+  if (authorId) {
+    where.authorId = authorId;
+  }
 
-    if (tagId) {
-      where.postTags = {
-        some: { tagId }
-      };
-    }
+  // Filter theo tag
+  if (tagId) {
+    where.postTags = {
+      some: { tagId }
+    };
+  }
 
-    // Build orderBy
-    const orderBy: any = {};
-    orderBy[sortBy] = sortOrder;
+  // Sort order
+  const orderBy: any = {};
+  orderBy[sortBy] = sortOrder;
 
-    const [posts, total] = await Promise.all([
-      this.prismaService.post.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        include: {
-          author: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatarUrl: true,
-            }
-          },
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              color: true,
-            }
-          },
-          postTags: {
-            include: {
-              tag: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                }
+  const [posts, total] = await Promise.all([
+    this.prismaService.post.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatarUrl: true,
+          }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+          }
+        },
+        postTags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
               }
             }
           }
         }
-      }),
-      this.prismaService.post.count({ where }),
-    ]);
+      }
+    }),
+    this.prismaService.post.count({ where }),
+  ]);
 
-    const formattedPosts = posts.map(post => this.formatPostResponse(post));
+  const formattedPosts = posts.map(post => this.formatPostResponse(post));
 
-    return {
-      posts: formattedPosts,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
+  return {
+    posts: formattedPosts,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
 
   async getPostById(id: number): Promise<PostResponseType> {
     const post = await this.prismaService.post.findUnique({
@@ -608,6 +632,118 @@ export class PostsRepository {
     };
   }
 
+async getSearchSuggestions(searchTerm: string): Promise<{ title: string; slug: string }[]> {
+  if (!searchTerm || searchTerm.trim().length < 2) {
+    return [];
+  }
+
+  const posts = await this.prismaService.post.findMany({
+    where: {
+      title: {
+        contains: searchTerm.trim()
+      },
+      status: PostStatus.PUBLISHED
+    },
+    select: {
+      title: true,
+      slug: true,
+    },
+    orderBy: {
+      publishedAt: 'desc'
+    },
+    take: 10,
+  });
+
+  return posts;
+}
+
+async getPopularPosts(limit: number = 5): Promise<PostResponseType[]> {
+  const posts = await this.prismaService.post.findMany({
+    where: {
+      status: PostStatus.PUBLISHED
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          avatarUrl: true,
+        }
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          color: true,
+        }
+      },
+      postTags: {
+        include: {
+          tag: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            }
+          }
+        }
+      }
+    },
+    orderBy: [
+      { viewCount: 'desc' }, // Sort by view count first
+      { publishedAt: 'desc' } // Then by published date
+    ],
+    take: limit,
+  });
+
+  return posts.map(post => this.formatPostResponse(post));
+}
+
+async getRecentPosts(limit: number = 5): Promise<PostResponseType[]> {
+  const posts = await this.prismaService.post.findMany({
+    where: {
+      status: PostStatus.PUBLISHED
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          avatarUrl: true,
+        }
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          color: true,
+        }
+      },
+      postTags: {
+        include: {
+          tag: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            }
+          }
+        }
+      }
+    },
+    orderBy: {
+      publishedAt: 'desc'
+    },
+    take: limit,
+  });
+
+  return posts.map(post => this.formatPostResponse(post));
+}
+
   /**
    * Admin-only update post (không check ownership)
    */
@@ -902,105 +1038,114 @@ export class PostsRepository {
   /**
    * Admin-only: Lấy tất cả posts (bao gồm drafts của authors)
    */
-  async getAllPostsForAdmin(query: PostQueryType): Promise<PostListType> {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      status,
-      categoryId,
-      authorId,
-      tagId,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = query;
+async getAllPostsForAdmin(query: PostQueryType): Promise<PostListType> {
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    status,
+    categoryId,
+    authorId,
+    tagId,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  } = query;
 
-    const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit;
 
-    // Điều kiện where cho admin (có thể xem tất cả posts)
-    const where: any = {};
+  const where: any = {};
 
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { content: { contains: search, mode: 'insensitive' } },
-        { excerpt: { contains: search, mode: 'insensitive' } }
-      ];
-    }
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (categoryId) {
-      where.categoryId = categoryId;
-    }
-
-    if (authorId) {
-      where.authorId = authorId;
-    }
-
-    if (tagId) {
-      where.postTags = {
-        some: {
-          tagId: tagId
-        }
-      };
-    }
-
-    // Count total posts
-    const total = await this.prismaService.post.count({ where });
-
-    // Get posts với pagination
-    const posts = await this.prismaService.post.findMany({
-      where,
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            avatarUrl: true,
-          }
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true,
-          }
-        },
-        postTags: {
-          include: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              }
-            }
-          }
-        }
+  if (search) {
+    where.OR = [
+      { 
+        title: { 
+          contains: search
+        } 
       },
-      orderBy: {
-        [sortBy]: sortOrder
+      { 
+        content: { 
+          contains: search
+        } 
       },
-      skip,
-      take: limit,
-    });
+      { 
+        excerpt: { 
+          contains: search
+        } 
+      }
+    ];
+  }
 
-    const formattedPosts = posts.map(post => this.formatPostResponse(post));
+  if (status) {
+    where.status = status;
+  }
 
-    return {
-      posts: formattedPosts,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
+  if (authorId) {
+    where.authorId = authorId;
+  }
+
+  if (tagId) {
+    where.postTags = {
+      some: {
+        tagId: tagId
       }
     };
   }
+
+  const total = await this.prismaService.post.count({ where });
+
+  const posts = await this.prismaService.post.findMany({
+    where,
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          avatarUrl: true,
+        }
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          color: true,
+        }
+      },
+      postTags: {
+        include: {
+          tag: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            }
+          }
+        }
+      }
+    },
+    orderBy: {
+      [sortBy]: sortOrder
+    },
+    skip,
+    take: limit,
+  });
+
+  const formattedPosts = posts.map(post => this.formatPostResponse(post));
+
+  return {
+    posts: formattedPosts,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    }
+  };
+}
 
 }

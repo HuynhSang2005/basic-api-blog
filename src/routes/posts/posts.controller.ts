@@ -1,3 +1,4 @@
+// Fix trong posts.controller.ts
 import { 
   Body, 
   Controller, 
@@ -37,7 +38,7 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Post()
-  @AuthorOrAdmin() // ← CHỈ AUTHOR/ADMIN MỚI TẠO ĐƯỢC POST
+  @AuthorOrAdmin()
   @ZodSerializerDto(PostResponseDto)
   async createPost(
     @Body() createData: CreatePostDto,
@@ -47,23 +48,45 @@ export class PostsController {
   }
 
   @Get()
-  @Auth([AuthType.None]) // Public route - để user đọc blog
+  @Auth([AuthType.None])
   @ZodSerializerDto(PostListDto)
   async getPosts(@Query() query: PostQueryDto) {
     return await this.postsService.getPosts(query as any);
   }
 
   @Get('stats')
-  @AuthorOrAdmin() // ← CHỈ AUTHOR/ADMIN MỚI XEM ĐƯỢC STATS
+  @AuthorOrAdmin()
   @ZodSerializerDto(PostStatsDto)
   async getPostStats(@ActiveUser() user: TokenPayload) {
-    // Author chỉ xem stats của mình, Admin xem tất cả
     const userId = user.role === 'ADMIN' ? undefined : user.userId;
     return await this.postsService.getPostStats(userId);
   }
 
+  @Get('search/suggestions')
+  @Auth([AuthType.None]) 
+  async getSearchSuggestions(@Query('q') searchTerm?: string) {
+    if (!searchTerm) {
+      return [];
+    }
+    return await this.postsService.getSearchSuggestions(searchTerm);
+  }
+
+  @Get('popular')
+  @Auth([AuthType.None]) // Public endpoint
+  async getPopularPosts(@Query('limit') limit?: string) {
+    const limitNumber = limit ? Math.min(parseInt(limit, 10), 20) : 5;
+    return await this.postsService.getPopularPosts(limitNumber);
+  }
+
+  @Get('recent')
+  @Auth([AuthType.None]) // Public endpoint  
+  async getRecentPosts(@Query('limit') limit?: string) {
+    const limitNumber = limit ? Math.min(parseInt(limit, 10), 20) : 5;
+    return await this.postsService.getRecentPosts(limitNumber);
+  }
+
   @Get('my')
-  @AuthorOrAdmin() // ← CHỈ AUTHOR/ADMIN MỚI XEM ĐƯỢC POSTS CỦA MÌNH
+  @AuthorOrAdmin()
   @ZodSerializerDto(PostListDto)
   async getMyPosts(
     @Query() query: PostQueryDto,
@@ -73,28 +96,28 @@ export class PostsController {
   }
 
   @Get('admin/all')
-  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI XEM ĐƯỢC TẤT CẢ POSTS (including drafts của authors)
+  @AdminOnlyAccess()
   @ZodSerializerDto(PostListDto)
   async getAllPostsAdmin(@Query() query: PostQueryDto) {
     return await this.postsService.getAllPostsForAdmin(query as any);
   }
 
   @Get(':id')
-  @Auth([AuthType.None]) // Public route
+  @Auth([AuthType.None])
   @ZodSerializerDto(PostResponseDto)
   async getPostById(@Param('id', ParseIntPipe) id: number) {
     return await this.postsService.getPostById(id);
   }
 
   @Get('slug/:slug')
-  @Auth([AuthType.None]) // Public route - tăng view count
+  @Auth([AuthType.None])
   @ZodSerializerDto(PostResponseDto)
   async getPostBySlug(@Param('slug') slug: string) {
     return await this.postsService.getPostBySlug(slug);
   }
 
   @Put(':id')
-  @AuthorWithOwnership() // ← AUTHOR với ownership check, ADMIN có thể edit tất cả
+  @AuthorWithOwnership()
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(PostResponseDto)
   async updatePost(
@@ -106,7 +129,7 @@ export class PostsController {
   }
 
   @Put(':id/publish')
-  @AuthorWithOwnership() // ← AUTHOR với ownership check cho publish
+  @AuthorWithOwnership()
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(PostResponseDto)
   async publishPost(
@@ -118,7 +141,7 @@ export class PostsController {
   }
 
   @Put('admin/:id/force-publish')
-  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI FORCE PUBLISH BẤT KỲ POST NÀO
+  @AdminOnlyAccess()
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(PostResponseDto)
   async forcePublishPost(
@@ -130,7 +153,7 @@ export class PostsController {
   }
 
   @Put('admin/:id/status')
-  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI THAY ĐỔI STATUS BẤT KỲ POST NÀO
+  @AdminOnlyAccess()
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(PostResponseDto)
   async changePostStatus(
@@ -141,7 +164,7 @@ export class PostsController {
   }
 
   @Delete(':id')
-  @AuthorWithOwnership() // ← AUTHOR với ownership check cho delete
+  @AuthorWithOwnership()
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePost(
     @Param('id', ParseIntPipe) id: number,
@@ -151,7 +174,7 @@ export class PostsController {
   }
 
   @Delete('admin/:id/force-delete')
-  @AdminOnlyAccess() // ← CHỈ ADMIN MỚI FORCE DELETE BẤT KỲ POST NÀO
+  @AdminOnlyAccess()
   @HttpCode(HttpStatus.NO_CONTENT)
   async forceDeletePost(@Param('id', ParseIntPipe) id: number) {
     await this.postsService.forceDeletePost(id);

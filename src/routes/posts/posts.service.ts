@@ -33,9 +33,6 @@ export class PostsService {
     return await this.postsRepository.getPostBySlug(slug);
   }
 
-  /**
-   * Update post với role-based logic
-   */
   async updatePost(id: number, data: UpdatePostType, userId: number, userRole?: UserRole): Promise<PostResponseType> {
     if (userRole === UserRole.ADMIN) {
       return await this.postsRepository.updatePostAsAdmin(id, data);
@@ -44,9 +41,6 @@ export class PostsService {
     return await this.postsRepository.updatePost(id, data, userId);
   }
 
-  /**
-   * Delete post với role-based logic
-   */
   async deletePost(id: number, userId: number, userRole?: UserRole): Promise<void> {
     if (userRole === UserRole.ADMIN) {
       await this.postsRepository.deletePostAsAdmin(id);
@@ -56,9 +50,6 @@ export class PostsService {
     await this.postsRepository.deletePost(id, userId);
   }
 
-  /**
-   * Publish post với role-based logic
-   */
   async publishPost(id: number, data: PublishPostType, userId: number, userRole?: UserRole): Promise<PostResponseType> {
     if (userRole === UserRole.ADMIN) {
       return await this.postsRepository.publishPostAsAdmin(id, data);
@@ -67,16 +58,22 @@ export class PostsService {
     return await this.postsRepository.publishPost(id, data, userId);
   }
 
-  /**
-   * Admin-only: Force publish bất kỳ post nào
-   */
+  async getSearchSuggestions(searchTerm: string): Promise<{ title: string; slug: string }[]> {
+  return await this.postsRepository.getSearchSuggestions(searchTerm);
+}
+
+async getPopularPosts(limit?: number): Promise<PostResponseType[]> {
+  return await this.postsRepository.getPopularPosts(limit);
+}
+
+async getRecentPosts(limit?: number): Promise<PostResponseType[]> {
+  return await this.postsRepository.getRecentPosts(limit);
+}
+
   async forcePublishPost(id: number, data: PublishPostType): Promise<PostResponseType> {
     return await this.postsRepository.publishPostAsAdmin(id, data);
   }
 
-  /**
-   * Admin-only: Change status bất kỳ post nào
-   */
   async changePostStatus(id: number, status: PostStatus): Promise<PostResponseType> {
     return await this.postsRepository.changePostStatusAsAdmin(id, status);
   }

@@ -47,7 +47,7 @@ export const UpdatePostSchema = z.object({
 
 export type UpdatePostType = z.infer<typeof UpdatePostSchema>
 
-// Post Response Schema với quan hệ
+// Post Response Schema 
 export const PostResponseSchema = PostSchema.omit({}).extend({
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
@@ -86,11 +86,11 @@ export const PostListSchema = z.object({
 
 export type PostListType = z.infer<typeof PostListSchema>
 
-// Query Parameters cho GET posts
+// Query Parameters
 export const PostQuerySchema = z.object({
   page: z.string().transform(Number).pipe(z.number().min(1)).optional().default('1'),
   limit: z.string().transform(Number).pipe(z.number().min(1).max(50)).optional().default('10'),
-  search: z.string().min(1).optional(),
+  search: z.string().min(1).optional(), 
   status: z.nativeEnum(PrismaPostStatus).optional(),
   categoryId: z.string().transform(Number).pipe(z.number().min(1)).optional(),
   authorId: z.string().transform(Number).pipe(z.number().min(1)).optional(),
