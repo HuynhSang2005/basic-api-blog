@@ -1,19 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { TokenPayload } from '../types/jwt.type';
+import { TokenPayload, RefreshTokenPayload } from '../types/jwt.type';
 import envConfig from 'config';
 
 @Injectable()
 export class TokenService {
   constructor(private readonly jwtService: JwtService) {}
 
-  signAccessToken(payload: { userId: number }): string {
+  // Tạo Access Token với đầy đủ thông tin user
+  signAccessToken(payload: TokenPayload): string {
     try {
-      const tokenPayload: TokenPayload = {
-        userId: payload.userId,
-      };
-
-      return this.jwtService.sign(tokenPayload, {
+      // payload đã có đầy đủ: userId, username, role
+      return this.jwtService.sign(payload, {
         secret: envConfig.ACCESS_TOKEN_SECRET,
         expiresIn: envConfig.ACCESS_TOKEN_EXPIRES_IN,
         algorithm: 'HS256',
@@ -24,13 +22,11 @@ export class TokenService {
     }
   }
 
-  signRefreshToken(payload: { userId: number }): string {
+  // Tạo Refresh Token với payload riêng
+  signRefreshToken(payload: RefreshTokenPayload): string {
     try {
-      const tokenPayload: TokenPayload = {
-        userId: payload.userId,
-      };
-
-      return this.jwtService.sign(tokenPayload, {
+      // payload chỉ cần: userId, refreshTokenId
+      return this.jwtService.sign(payload, {
         secret: envConfig.REFRESH_TOKEN_SECRET,
         expiresIn: envConfig.REFRESH_TOKEN_EXPIRES_IN,
         algorithm: 'HS256',
@@ -41,9 +37,10 @@ export class TokenService {
     }
   }
 
+  // Verify Access Token trả về TokenPayload đầy đủ
   async verifyAccessToken(token: string): Promise<TokenPayload> {
     try {
-      return await this.jwtService.verifyAsync(token, {
+      return await this.jwtService.verifyAsync<TokenPayload>(token, {
         secret: envConfig.ACCESS_TOKEN_SECRET,
       });
     } catch (error) {
@@ -52,9 +49,10 @@ export class TokenService {
     }
   }
 
-  async verifyRefreshToken(token: string): Promise<TokenPayload> {
+  // Verify Refresh Token trả về RefreshTokenPayload
+  async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
     try {
-      return await this.jwtService.verifyAsync(token, {
+      return await this.jwtService.verifyAsync<RefreshTokenPayload>(token, {
         secret: envConfig.REFRESH_TOKEN_SECRET,
       });
     } catch (error) {

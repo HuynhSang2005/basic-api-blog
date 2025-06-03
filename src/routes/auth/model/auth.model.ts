@@ -1,6 +1,5 @@
 import { z } from "zod"
-import { UserSchema } from "src/shared/model/shared-user.model"
-
+import { UserSchema } from "../../../shared/model/shared-user.model" 
 
 export type UserType = z.infer<typeof UserSchema>
 
@@ -55,6 +54,14 @@ export const LoginResponseSchema = z.object({
 
 export type LoginResponseType = z.infer<typeof LoginResponseSchema>
 
+// Token Response Schema (chỉ chứa tokens)
+export const TokenResponseSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+})
+
+export type TokenResponseType = z.infer<typeof TokenResponseSchema>
+
 // Refresh Token Request Schema
 export const RefreshTokenBodySchema = z.object({
   refreshToken: z.string(),
@@ -76,6 +83,13 @@ export const LogoutBodySchema = z.object({
 })
 
 export type LogoutBodyType = z.infer<typeof LogoutBodySchema>
+
+// Logout Response Schema
+export const LogoutResponseSchema = z.object({
+  message: z.string(),
+})
+
+export type LogoutResponseType = z.infer<typeof LogoutResponseSchema>
 
 // User Public Schema
 export const UserPublicSchema = UserSchema.omit({

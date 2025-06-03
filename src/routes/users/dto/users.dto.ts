@@ -3,10 +3,16 @@ import {
   UserProfileSchema,
   UpdateProfileSchema,
   ChangePasswordSchema,
-  ChangePasswordResponseSchema
+  UserListSchema,
+  UpdateUserStatusSchema
 } from "../model/user.model";
 
 export class UserProfileDto extends createZodDto(UserProfileSchema) {}
+
 export class UpdateProfileDto extends createZodDto(UpdateProfileSchema) {}
+
 export class ChangePasswordDto extends createZodDto(ChangePasswordSchema) {}
-export class ChangePasswordResponseDto extends createZodDto(ChangePasswordResponseSchema) {}
+
+export class UserListDto extends createZodDto(UserListSchema) {}
+
+export class UpdateUserStatusDto extends createZodDto(UpdateUserStatusSchema) {}

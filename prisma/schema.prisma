@@ -16,28 +16,32 @@ enum UserStatus {
   BANNED
 }
 
-
+enum UserRole {
+  USER
+  ADMIN
+  AUTHOR
+}
 
 enum PostStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
-
 }
 
 // Users table (Người dùng)
 model User {
-  id           Int       @id @default(autoincrement())
-  username     String    @unique
-  password    String     
-  email        String    @unique
-  fullName     String?   @map("full_name")
-  avatarUrl    String?   @map("avatar_url")
+  id           Int        @id @default(autoincrement())
+  username     String     @unique
+  password     String     
+  email        String     @unique
+  fullName     String?    @map("full_name")
+  avatarUrl    String?    @map("avatar_url")
+  role         UserRole   @default(USER)  // ← THÊM FIELD ROLE
   status       UserStatus @default(ACTIVE)
-  lastLoginAt  DateTime? @map("last_login_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  lastLoginAt  DateTime?  @map("last_login_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  deletedAt    DateTime?  @map("deleted_at")
 
   // Relations
   refreshTokens RefreshToken[]
@@ -45,6 +49,7 @@ model User {
 
   @@index([email])
   @@index([status])
+  @@index([role])  
   @@map("users")
 }
 

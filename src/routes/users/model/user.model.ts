@@ -1,11 +1,8 @@
-import { UserSchema } from "src/shared/model/shared-user.model"
-import { z } from "zod"
+import { z } from 'zod';
+import { UserSchema } from '../../../shared/model/shared-user.model';
+import { UserStatus } from '@prisma/client';
 
-
-
-export type UserType = z.infer<typeof UserSchema>
-
-// User Profile Response Schema (không có password)
+// User Profile Schema 
 export const UserProfileSchema = UserSchema.omit({
   password: true,
 }).extend({
@@ -13,20 +10,20 @@ export const UserProfileSchema = UserSchema.omit({
   updatedAt: z.string().optional(),
   deletedAt: z.string().nullable().optional(),
   lastLoginAt: z.string().nullable().optional(),
-})
+});
 
-export type UserProfileType = z.infer<typeof UserProfileSchema>
+export type UserProfileType = z.infer<typeof UserProfileSchema>;
 
-// Update Profile Request Schema
+// Update Profile Schema (only allowed fields)
 export const UpdateProfileSchema = z.object({
-  username: z.string().min(1).max(100).optional(),
-  fullName: z.string().min(1).max(200).nullable().optional(),
+  username: z.string().min(1).max(50).optional(),
+  fullName: z.string().min(1).max(100).nullable().optional(),
   avatarUrl: z.string().url().nullable().optional(),
-}).strict()
+}).strict();
 
-export type UpdateProfileType = z.infer<typeof UpdateProfileSchema>
+export type UpdateProfileType = z.infer<typeof UpdateProfileSchema>;
 
-// Change Password Request Schema
+// Change Password Schema
 export const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(6),
   newPassword: z.string().min(6).max(100),
@@ -35,17 +32,36 @@ export const ChangePasswordSchema = z.object({
   if (newPassword !== confirmPassword) {
     ctx.addIssue({
       code: 'custom',
-      message: 'Mật khẩu mới và xác nhận không khớp',
+      message: 'Mật khẩu xác nhận không khớp',
       path: ['confirmPassword'],
-    })
+    });
   }
-})
+});
 
-export type ChangePasswordType = z.infer<typeof ChangePasswordSchema>
+export type ChangePasswordType = z.infer<typeof ChangePasswordSchema>;
 
-// Change Password Response Schema
+// ← THÊM ADMIN SCHEMAS
+export const UserListSchema = z.object({
+  users: z.array(UserProfileSchema),
+  pagination: z.object({
+    total: z.number(),
+    page: z.number(),
+    limit: z.number(),
+    totalPages: z.number(),
+  }),
+});
+
+export type UserListType = z.infer<typeof UserListSchema>;
+
+export const UpdateUserStatusSchema = z.object({
+  status: z.nativeEnum(UserStatus),
+});
+
+export type UpdateUserStatusType = z.infer<typeof UpdateUserStatusSchema>;
+
+// ← THÊM RESPONSE SCHEMAS
 export const ChangePasswordResponseSchema = z.object({
   message: z.string(),
-})
+});
 
-export type ChangePasswordResponseType = z.infer<typeof ChangePasswordResponseSchema>
+export type ChangePasswordResponseType = z.infer<typeof ChangePasswordResponseSchema>;

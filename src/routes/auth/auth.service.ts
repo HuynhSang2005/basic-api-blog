@@ -1,32 +1,36 @@
-import {
-  ConflictException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-  UnauthorizedException,
+import { 
+  Injectable, 
+  ConflictException, 
+  NotFoundException, 
   UnprocessableEntityException,
+  UnauthorizedException,
+  InternalServerErrorException
 } from '@nestjs/common';
-import { HashingService } from '../../shared/services/hashing.service';
-import { TokenService } from '../../shared/services/token.service';
-import { isUniqueConstraintPrismaError } from '../../shared/types/helper';
 import { AuthRepository } from './repository/auth.repo';
+import { HashingService } from '../../shared/services/hashing.service';
 import { 
   RegisterBodyType, 
-  LoginBodyType, 
+  RegisterResponseType,
+  LoginBodyType,
   LoginResponseType,
   RefreshTokenBodyType,
   RefreshTokenResponseType,
-  LogoutBodyType 
+  LogoutBodyType,
+  LogoutResponseType
 } from './model/auth.model';
+import { 
+  isUniqueConstraintPrismaError, 
+  isNotFoundPrismaError 
+} from '../../shared/types/helper';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly hashingService: HashingService,
     private readonly authRepository: AuthRepository,
+    private readonly hashingService: HashingService,
   ) {}
 
-  async register(body: RegisterBodyType) {
+  async register(body: RegisterBodyType): Promise<RegisterResponseType> {
     const hashedPassword = await this.hashingService.hash(body.password);
 
     try {
@@ -42,6 +46,9 @@ export class AuthService {
         const target = error.meta?.target as string[] | undefined;
         if (target?.includes('email')) {
           throw new ConflictException(`Email '${body.email}' đã tồn tại.`);
+        }
+        if (target?.includes('username')) {
+          throw new ConflictException(`Username '${body.username}' đã tồn tại.`);
         }
         throw new ConflictException('Thông tin đăng ký bị trùng lặp.');
       }
@@ -73,7 +80,6 @@ export class AuthService {
       throw new UnauthorizedException('Mật khẩu không chính xác.');
     }
 
-    // Update last login
     await this.authRepository.updateLastLogin(user.id);
 
     // Generate tokens
@@ -85,9 +91,11 @@ export class AuthService {
     return {
       user: {
         ...userWithoutPassword,
+        role: user.role, 
+        status: user.status, 
         createdAt: user.createdAt?.toISOString(),
         updatedAt: user.updatedAt?.toISOString(),
-        deletedAt: user.deletedAt?.toISOString() ?? null,
+        deletedAt: null,
       },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -99,7 +107,7 @@ export class AuthService {
     return tokens;
   }
 
-  async logout(body: LogoutBodyType) {
+  async logout(body: LogoutBodyType): Promise<LogoutResponseType> {
     return await this.authRepository.logout(body.refreshToken);
   }
 }

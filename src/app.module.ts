@@ -6,11 +6,13 @@ import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { AuthModule } from './routes/auth/auth.module';
-import { UsersModule } from './routes/users/user.module';
+import { UsersModule } from './routes/users/users.module';
 import { TagsModule } from './routes/tags/tags.module';
+import { CategoriesModule } from './routes/categories/categories.module';
+import { PostsModule } from './routes/posts/posts.module';
 
 @Module({
-  imports: [SharedModule, CommonModule, AuthModule, UsersModule, TagsModule],
+  imports: [SharedModule, CommonModule, AuthModule, UsersModule, TagsModule, CategoriesModule, PostsModule],
   providers: [
     {
       provide: APP_PIPE,

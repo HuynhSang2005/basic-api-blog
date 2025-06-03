@@ -3,11 +3,13 @@ import { PrismaService } from './services/prisma.service';
 import { HashingService } from './services/hashing.service';
 import { TokenService } from './services/token.service';
 import { JwtModule } from '@nestjs/jwt';
+import { SlugService } from './services/slug.service';
 
 const shareServices = [
   PrismaService,
   HashingService,
   TokenService,
+  SlugService
 ]
 
 @Global()
