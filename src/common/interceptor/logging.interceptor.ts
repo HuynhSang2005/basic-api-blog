@@ -3,11 +3,11 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  Logger, // Import Logger
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { Request, Response } from 'express'; // Import kiểu Request, Response
+import { Request, Response } from 'express'; 
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -42,14 +42,8 @@ export class LoggingInterceptor implements NestInterceptor {
           this.logger.log(
             `[Response] ${method} ${originalUrl} ${statusCode} ${contentLength || '-'}b - ${elapsedTime}ms`,
           );
-          // Optional: Log data trả về (có thể rất lớn, nên cẩn thận khi bật)
-          // this.logger.debug(`Response data: ${JSON.stringify(data)}`);
+          
         }),
-        // Optional: Thêm catchError để log lỗi nếu cần, nhưng thường Exception Filter sẽ xử lý
-        // catchError((err) => {
-        //   this.logger.error(`[Error] ${method} ${originalUrl} - ${err.message}`, err.stack);
-        //   return throwError(() => err);
-        // })
       );
   }
 }

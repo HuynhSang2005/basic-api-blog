@@ -18,7 +18,27 @@ export type UserProfileType = z.infer<typeof UserProfileSchema>;
 export const UpdateProfileSchema = z.object({
   username: z.string().min(1).max(50).optional(),
   fullName: z.string().min(1).max(100).nullable().optional(),
-  avatarUrl: z.string().url().nullable().optional(),
+  avatarUrl: z.string()
+    .transform((val) => {
+      // Transform "string" thành empty string
+      if (val === 'string' || val === 'null' || val === 'undefined') {
+        return '';
+      }
+      return val;
+    })
+    .refine((val) => {
+      // Cho phép empty string hoặc URL hợp lệ
+      if (val === '') return true;
+      try {
+        new URL(val);
+        return true;
+      } catch {
+        return false;
+      }
+    }, {
+      message: 'Phải là URL hợp lệ - (ví dụ: https://example.com/image.jpg) hoặc để trống'
+    })
+    .optional(),
 }).strict();
 
 export type UpdateProfileType = z.infer<typeof UpdateProfileSchema>;
@@ -40,7 +60,6 @@ export const ChangePasswordSchema = z.object({
 
 export type ChangePasswordType = z.infer<typeof ChangePasswordSchema>;
 
-// ← THÊM ADMIN SCHEMAS
 export const UserListSchema = z.object({
   users: z.array(UserProfileSchema),
   pagination: z.object({
@@ -59,7 +78,6 @@ export const UpdateUserStatusSchema = z.object({
 
 export type UpdateUserStatusType = z.infer<typeof UpdateUserStatusSchema>;
 
-// ← THÊM RESPONSE SCHEMAS
 export const ChangePasswordResponseSchema = z.object({
   message: z.string(),
 });

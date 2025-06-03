@@ -46,7 +46,7 @@ export class PostOwnershipGuard implements CanActivate {
     return true;
   }
 
-  /**
+  /*
    * Extract post ID từ request params
    * Hỗ trợ các pattern: /posts/:id, /posts/:id/publish, etc.
    */
