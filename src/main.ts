@@ -47,6 +47,7 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
 
+  console.log(`📚 Swagger docs available at: http://localhost:3000/api-docs`);
 
   // Display server information using console.table
   // displayServerInfo(port);
