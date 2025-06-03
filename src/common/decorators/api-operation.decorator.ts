@@ -1,12 +1,14 @@
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 
 interface ApiOperationDecoratorOptions {
@@ -14,6 +16,9 @@ interface ApiOperationDecoratorOptions {
   summary: string;
   description: string;
   operationId: string;
+  tags?: string[];
+  requireAuth?: boolean;
+  isArray?: boolean; 
 }
 
 export function ApiOperationDecorator({
@@ -21,19 +26,36 @@ export function ApiOperationDecorator({
   summary,
   description,
   operationId,
+  tags = [],
+  requireAuth = false,
+  isArray = false,
 }: ApiOperationDecoratorOptions) {
-  return applyDecorators(
+  const decorators = [
     ApiOperation({ summary, operationId }),
     ApiOkResponse({
       type,
       description,
+      isArray, 
     }),
-    ApiUnauthorizedResponse({ description: 'Token is invalid' }),
-    ApiForbiddenResponse({ description: 'Do not have permissions' }),
-    ApiBadRequestResponse({ description: 'Invalid data' }),
-    ApiUnprocessableEntityResponse({ description: 'Invalid data' }),
+    ApiBadRequestResponse({ description: 'Invalid request data' }),
+    ApiUnprocessableEntityResponse({ description: 'Validation failed' }),
     ApiInternalServerErrorResponse({
       description: 'Internal server error, please try later',
-    }), // 500
-  );
+    }),
+  ];
+
+  if (requireAuth) {
+    decorators.push(
+      ApiBearerAuth('JWT-auth'),
+      ApiUnauthorizedResponse({ description: 'Invalid or missing token' }),
+      ApiForbiddenResponse({ description: 'Insufficient permissions' })
+    );
+  }
+
+  // ← Thêm tags nếu có
+  if (tags.length > 0) {
+    decorators.push(ApiTags(...tags));
+  }
+
+  return applyDecorators(...decorators);
 }
