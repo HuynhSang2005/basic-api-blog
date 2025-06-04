@@ -80,6 +80,11 @@ Database được thiết kế với Prisma ORM và SQLite, bao gồm 6 bảng c
 └── PostTag (Quan hệ Posts-Tags)
 ```
 
+<p>
+  <img src="https://github.com/user-attachments/assets/390e4523-d444-4ae1-a736-5a4183da8468" alt="Mô tả ảnh" width="900" height="700" />
+</p>
+<!-- ![diagram_db]() -->
+
 ### 👥 User Table
 Quản lý thông tin người dùng với role-based access control.
 
