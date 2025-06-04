@@ -18,6 +18,7 @@ export type UserProfileType = z.infer<typeof UserProfileSchema>;
 export const UpdateProfileSchema = z.object({
   username: z.string().min(1).max(50).optional(),
   fullName: z.string().min(1).max(100).nullable().optional(),
+  // nếu update lên zod- 4 (library) thì sử dụng thẳng z.url().nullable().optional(). Vì hiện tại zod-3 không hỗ trợ z.url()
   avatarUrl: z.string()
     .transform((val) => {
       // Transform "string" thành empty string
@@ -39,6 +40,7 @@ export const UpdateProfileSchema = z.object({
       message: 'Phải là URL hợp lệ - (ví dụ: https://example.com/image.jpg) hoặc để trống'
     })
     .optional(),
+  
 }).strict();
 
 export type UpdateProfileType = z.infer<typeof UpdateProfileSchema>;
