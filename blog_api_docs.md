@@ -1,255 +1,500 @@
-    # Blog API Project Documentation
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
+
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
+
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+
+# Blog API Project Documentation
 
 ## 📋 Project Overview
 
-API này cung cấp các tính năng cơ bản của một hệ thống blog bao gồm xác thực người dùng, quản lý bài viết, phân loại và gắn tag.
+Blog API được xây dựng bằng NestJS, cung cấp đầy đủ các tính năng cho một hệ thống blog hiện đại với xác thực người dùng, quản lý bài viết, phân loại và gắn tag.
 
-### 🎯 Project Scope
-- **Timeline**: 2 tuần
-- **Team Size**: 2 người (1 Backend Developer, 1 Frontend Developer)
-- **Technology**: NestJS(BE) + ReactJS(FE) + PostgreSQL
+### 🎯 Project Features
+- **Technology Stack**: NestJS + TypeScript + Prisma + SQLite
 - **Authentication**: JWT với Refresh Token
+- **Role-based Access Control**: ADMIN, AUTHOR, USER
 - **Core Features**:
-    - ✅ User Authentication (Register, Login)
+    - ✅ User Authentication & Authorization (Register, Login, Role-based)
     - ✅ JWT Access & Refresh Token Management
-    - ✅ Blog Post CRUD Operations
+    - ✅ Blog Post CRUD Operations với ownership control
     - ✅ Categories & Tags Management
-    - ✅ Post Status Management (Draft, Published, Archived, etc.)
+    - ✅ Post Status Management (DRAFT, PUBLISHED, ARCHIVED)
+    - ✅ Admin Dashboard với full control
+    - ✅ Search & Filter capabilities
+    - ✅ Swagger API Documentation
+    - ✅ Request/Response validation với Zod
+
+## 🏗️ Architecture Overview
+
+### Project Structure
+```
+src/
+├── app.module.ts                 # Root module
+├── main.ts                      # Application entry point
+├── common/                      # Shared utilities
+│   ├── decorators/             # Custom decorators
+│   ├── filters/                # Exception filters
+│   ├── guards/                 # Authentication & authorization guards
+│   ├── interceptors/           # Request/response interceptors
+│   └── pipes/                  # Validation pipes
+├── routes/                     # API routes modules
+│   ├── auth/                   # Authentication endpoints
+│   ├── categories/             # Categories management
+│   ├── posts/                  # Posts management
+│   ├── tags/                   # Tags management
+│   └── users/                  # User management
+└── shared/                     # Shared services & types
+    ├── services/               # Shared services
+    ├── types/                  # TypeScript types
+    └── constants/              # Application constants
+```
 
 ## 🗄️ Database Design
 
 ### Database Schema Overview
 
-Database được thiết kế với 5 bảng chính để hỗ trợ các tính năng cốt lõi của blog API:
+Database được thiết kế với Prisma ORM và SQLite, bao gồm 6 bảng chính:
 
 ```
-├── users (Người dùng)
-├── refresh_tokens (JWT Refresh Tokens)
-├── categories (Danh mục bài viết)
-├── posts (Bài viết)
-├── tags (Thẻ tag)
-└── post_tags (Quan hệ Posts-Tags)
-
+├── User (Người dùng)
+├── RefreshToken (JWT Refresh Tokens) 
+├── Category (Danh mục bài viết)
+├── Post (Bài viết)
+├── Tag (Thẻ tag)
+└── PostTag (Quan hệ Posts-Tags)
 ```
 
-### 👥 Users Table
-Quản lý thông tin người dùng và xác thực.
+### 👥 User Table
+Quản lý thông tin người dùng với role-based access control.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| id | SERIAL | Primary key |
-| username | VARCHAR(50) | Tên đăng nhập (unique) |
-| email | VARCHAR(100) | Email (unique) |
-| password | VARCHAR(255) | Mật khẩu đã hash |
-| full_name | VARCHAR(100) | Họ tên đầy đủ |
-| avatar_url | VARCHAR(255) | URL ảnh đại diện |
-| bio | TEXT | Tiểu sử ngắn |
-| status | VARCHAR(20) | Trạng thái: active, inactive, banned |
-| last_login_at | TIMESTAMP | Lần login cuối |
-| created_at | TIMESTAMP | Thời gian tạo |
-| updated_at | TIMESTAMP | Thời gian cập nhật |
+| id | Int | Primary key |
+| username | String | Tên đăng nhập (unique) |
+| email | String | Email (unique) |
+| password | String | Mật khẩu đã hash |
+| fullName | String? | Họ tên đầy đủ |
+| avatarUrl | String? | URL ảnh đại diện |
+| bio | String? | Tiểu sử ngắn |
+| role | UserRole | ADMIN, AUTHOR, USER |
+| status | UserStatus | ACTIVE, INACTIVE, BANNED |
+| lastLoginAt | DateTime? | Lần login cuối |
+| createdAt | DateTime | Thời gian tạo |
+| updatedAt | DateTime | Thời gian cập nhật |
 
-**User Status Flow:**
-Người dùng được tạo với trạng thái `active`. Có thể chuyển sang `inactive` hoặc `banned`.
+**User Roles:**
+- `ADMIN`: Full control over system
+- `AUTHOR`: Can create/edit own posts
+- `USER`: Read-only access
 
-### 🎫 Refresh Tokens Table
-Quản lý JWT refresh tokens để maintain sessions.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| id | SERIAL | Primary key |
-| token | VARCHAR(255) | JWT refresh token (unique) |
-| user_id | INTEGER | FK to users(id) |
-| expires_at | TIMESTAMP | Thời hạn token |
-| created_at | TIMESTAMP | Thời gian tạo |
-| updated_at | TIMESTAMP | Thời gian cập nhật |
-
-### 📁 Categories Table
-Danh mục phân loại bài viết.
+### 🎫 RefreshToken Table
+Quản lý JWT refresh tokens với expiration tracking.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| id | SERIAL | Primary key |
-| name | VARCHAR(100) | Tên danh mục (unique) |
-| slug | VARCHAR(100) | URL slug (unique) |
-| description | TEXT | Mô tả danh mục |
-| color | VARCHAR(7) | Mã màu hex (#FF5733) |
-| created_at | TIMESTAMP | Thời gian tạo |
-| updated_at | TIMESTAMP | Thời gian cập nhật |
+| id | Int | Primary key |
+| token | String | JWT refresh token (unique) |
+| userId | Int | FK to User(id) |
+| expiresAt | DateTime | Thời hạn token |
+| createdAt | DateTime | Thời gian tạo |
+| updatedAt | DateTime | Thời gian cập nhật |
 
-### 📝 Posts Table
-Bài viết chính của blog.
+### 📁 Category Table
+Danh mục phân loại bài viết với slug support.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| id | SERIAL | Primary key |
-| title | VARCHAR(255) | Tiêu đề bài viết |
-| slug | VARCHAR(255) | URL slug (unique) |
-| content | TEXT | Nội dung bài viết |
-| excerpt | TEXT | Tóm tắt ngắn |
-| featured_image | VARCHAR(255) | URL ảnh đại diện |
-| status | VARCHAR(20) | Trạng thái bài viết (draft, published, archived) |
-| view_count | INTEGER | Số lượt xem |
-| author_id | INTEGER | FK to users(id) |
-| category_id | INTEGER | FK to categories(id) |
-| published_at | TIMESTAMP | Thời điểm publish |
-| created_at | TIMESTAMP | Thời gian tạo |
-| updated_at | TIMESTAMP | Thời gian cập nhật |
+| id | Int | Primary key |
+| name | String | Tên danh mục (unique) |
+| slug | String | URL slug (unique) |
+| description | String? | Mô tả danh mục |
+| color | String? | Mã màu hex (#FF5733) |
+| createdAt | DateTime | Thời gian tạo |
+| updatedAt | DateTime | Thời gian cập nhật |
+
+### 📝 Post Table
+Bài viết chính với full content management.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | Int | Primary key |
+| title | String | Tiêu đề bài viết |
+| slug | String | URL slug (unique) |
+| content | String | Nội dung bài viết (HTML/Markdown) |
+| excerpt | String? | Tóm tắt ngắn |
+| featuredImage | String? | URL ảnh đại diện |
+| status | PostStatus | DRAFT, PUBLISHED, ARCHIVED |
+| viewCount | Int | Số lượt xem (default: 0) |
+| authorId | Int | FK to User(id) |
+| categoryId | Int | FK to Category(id) |
+| publishedAt | DateTime? | Thời điểm publish |
+| createdAt | DateTime | Thời gian tạo |
+| updatedAt | DateTime | Thời gian cập nhật |
 
 **Post Status Flow:**
-
 ```
-draft → published → archived
-
+DRAFT → PUBLISHED → ARCHIVED
+  ↑         ↓
+  └─────────┘
 ```
 
-### 🏷️ Tags Table
+### 🏷️ Tag Table
 Thẻ tag để gắn nhãn bài viết.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| id | SERIAL | Primary key |
-| name | VARCHAR(50) | Tên tag (unique) |
-| slug | VARCHAR(50) | URL slug (unique) |
-| created_at | TIMESTAMP | Thời gian tạo |
+| id | Int | Primary key |
+| name | String | Tên tag (unique) |
+| slug | String | URL slug (unique) |
+| createdAt | DateTime | Thời gian tạo |
 
-### 🔗 Post Tags Table
+### 🔗 PostTag Table
 Quan hệ nhiều-nhiều giữa Posts và Tags.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| id | SERIAL | Primary key |
-| post_id | INTEGER | FK to posts(id) |
-| tag_id | INTEGER | FK to tags(id) |
-| created_at | TIMESTAMP | Thời gian tạo |
+| postId | Int | FK to Post(id) |
+| tagId | Int | FK to Tag(id) |
+| createdAt | DateTime | Thời gian tạo |
 
-## 🔐 Authentication Flow
+## 🔐 Authentication & Authorization Flow
 
 ### Registration Process
-1. User submit registration form (username, email, password, full_name, etc.)
-2. Tạo user với status = "active"
+1. User submit registration form (username, email, password, fullName)
+2. Password được hash với bcrypt (salt rounds: 12)
+3. Tạo user với role = "USER", status = "ACTIVE"
+4. Return user info (không có password)
 
 ### Login Process
-1. User login với email/password
-2. Tạo Access Token (ví dụ: 15-30 phút)
-3. Tạo Refresh Token (ví dụ: 7-30 ngày) và lưu vào database
-4. Return cả 2 tokens cho client
+1. Validate email/password
+2. Generate JWT payload với userId, username, role
+3. Create Access Token (1 hour expiry)
+4. Create Refresh Token (30 days expiry) và lưu vào database
+5. Return tokens + user info
 
 ### Token Refresh Process
-1. Access Token hết hạn
-2. Client gửi Refresh Token
-3. Verify Refresh Token từ database (check tồn tại và chưa hết hạn)
-4. Tạo Access Token mới
-5. Refresh Token (tạo refresh token mới, xóa token cũ)
+1. Client gửi expired access token + refresh token
+2. Verify refresh token từ database
+3. Generate new access token
+4. Create new refresh token (rotate strategy)
+5. Delete old refresh token
+6. Return new tokens
 
-## 📡 API Endpoints Structure
+### Role-based Authorization
+- **Guards**: [`RoleGuard`](src/common/guards/role.guard.ts), [`PostOwnershipGuard`](src/common/guards/post-ownership.guard.ts)
+- **Decorators**: `@AdminOnly()`, `@AuthorOrAdmin()`, `@PostOwner()`
+- **Post Ownership**: Authors can only edit their own posts, Admins can edit any post
 
-### Authentication Endpoints
+## 📡 API Endpoints
 
+### 🔑 Authentication (`/auth`)
 ```
-POST /api/auth/register          # Đăng ký tài khoản
-POST /api/auth/login             # Đăng nhập
-POST /api/auth/logout            # Đăng xuất (xóa refresh token)
-POST /api/auth/refresh-token     # Refresh access token
-
-```
-
-### User Management
-```
-GET  /api/users/profile          # Lấy thông tin profile (auth)
-PUT  /api/users/profile          # Cập nhật profile (auth)
-PUT  /api/users/change-password  # Đổi mật khẩu (auth)
-
+POST /auth/register              # Đăng ký tài khoản
+POST /auth/login                 # Đăng nhập  
+POST /auth/logout                # Đăng xuất (xóa refresh token)
+POST /auth/refresh-token         # Refresh access token
 ```
 
-### Posts Management
+### 👤 User Management (`/users`)
 ```
-GET    /api/posts                # Lấy danh sách bài viết (public, có thể filter theo author_id cho "my posts")
-GET    /api/posts/:slug          # Lấy chi tiết bài viết (public)
-POST   /api/posts                # Tạo bài viết mới (auth)
-PUT    /api/posts/:id            # Cập nhật bài viết (auth, chỉ chủ sở hữu)
-DELETE /api/posts/:id            # Xóa bài viết (auth, chỉ chủ sở hữu)
+GET  /users/profile              # Lấy profile cá nhân (auth required)
+PUT  /users/profile              # Cập nhật profile (auth required)
+PUT  /users/change-password      # Đổi mật khẩu (auth required)
 
-```
-
-### Categories Management
-```
-GET    /api/categories           # Lấy danh sách categories (public)
-POST   /api/categories           # Tạo category (auth)
-PUT    /api/categories/:id       # Cập nhật category (auth)
-DELETE /api/categories/:id       # Xóa category (auth)
-
+# Admin endpoints
+GET  /users                      # Lấy danh sách users (admin only)
+PUT  /users/:id/status           # Cập nhật status user (admin only)
 ```
 
-### Tags Management
+### 📝 Posts Management (`/posts`)
 ```
-GET    /api/tags                 # Lấy danh sách tags (public)
-POST   /api/tags                 # Tạo tag (auth)
-PUT    /api/tags/:id             # Cập nhật tag (auth)
-DELETE /api/tags/:id             # Xóa tag (auth)
+# Public endpoints
+GET    /posts                    # Lấy danh sách bài viết published
+GET    /posts/search/suggestions # Gợi ý tìm kiếm
+GET    /posts/popular           # Bài viết phổ biến
+GET    /posts/recent            # Bài viết mới nhất
+GET    /posts/:slug             # Chi tiết bài viết (tăng view count)
 
+# Author endpoints (auth required)
+GET    /posts/my-posts          # Bài viết của tôi
+POST   /posts                   # Tạo bài viết mới
+PUT    /posts/:id               # Cập nhật bài viết (chỉ chủ sở hữu)
+DELETE /posts/:id               # Xóa bài viết (chỉ chủ sở hữu)
+PUT    /posts/:id/publish       # Publish bài viết (chỉ chủ sở hữu)
+
+# Admin endpoints
+GET    /posts/admin/all         # Tất cả bài viết (bao gồm draft)
+PUT    /posts/admin/:id         # Cập nhật bất kỳ bài viết nào
+DELETE /posts/admin/:id         # Xóa bất kỳ bài viết nào
+PUT    /posts/admin/:id/publish # Publish bất kỳ bài viết nào
+PUT    /posts/admin/:id/status  # Thay đổi status bài viết
+GET    /posts/stats             # Thống kê bài viết
 ```
 
-## 🛡️ Security Considerations
+### 📁 Categories Management (`/categories`)
+```
+# Public endpoints
+GET    /categories              # Danh sách categories
+GET    /categories/:id          # Chi tiết category
+GET    /categories/slug/:slug   # Chi tiết category by slug
 
-### Password Security
-- Sử dụng bcrypt để hash password
-- Minimum password length: 8 characters
-- Password complexity requirements (nên có)
+# Author/Admin endpoints (auth required)
+POST   /categories              # Tạo category mới
+PUT    /categories/:id          # Cập nhật category
+DELETE /categories/:id          # Xóa category (kiểm tra ràng buộc)
+```
 
-### JWT Security
-- Access Token: Short-lived (ví dụ: 15-30 phút)
-- Refresh Token: Longer-lived (ví dụ: 7-30 days)
-- Refresh tokens được lưu trữ an toàn trong database (có thể thu hồi/revokable)
-- HTTPS bắt buộc để truyền tokens
-- Cân nhắc cơ chế Token blacklisting khi logout hoặc token bị lộ.
+### 🏷️ Tags Management (`/tags`)
+```
+# Public endpoints
+GET    /tags                    # Danh sách tags
+GET    /tags/popular           # Tags phổ biến
+GET    /tags/:id               # Chi tiết tag
+GET    /tags/slug/:slug        # Chi tiết tag by slug
+
+# Author/Admin endpoints (auth required)
+POST   /tags                   # Tạo tag mới
+PUT    /tags/:id               # Cập nhật tag
+DELETE /tags/:id               # Xóa tag (kiểm tra ràng buộc)
+```
+
+### Query Parameters Support
+```
+# Posts listing
+?page=1&limit=10&search=keyword&status=PUBLISHED&categoryId=1&authorId=2&tagId=3&sortBy=createdAt&sortOrder=desc
+
+# Categories/Tags listing  
+?page=1&limit=10&search=keyword&sortBy=name&sortOrder=asc
+```
+
+## 🔧 Key Features Implementation
+
+### 1. Slug Generation
+- Automatic slug generation từ title/name
+- Duplicate slug handling với suffix numbers
+- Service: [`SlugService`](src/shared/services/slug.service.ts)
+
+### 2. Validation với Zod
+- Request/Response validation
+- Type-safe DTOs
+- Custom validation rules
+- Error handling với proper messages
+
+### 3. Search & Filter
+- Full-text search trong title, content, excerpt
+- Multi-field filtering (status, category, author, tags)
+- Pagination support
+- Sort by multiple fields
+
+### 4. Admin Features
+- Force operations (bypass ownership checks)
+- System-wide statistics
+- User management
+- Content moderation
+
+### 5. Security Features
+- Password hashing với bcrypt
+- JWT với proper expiration
+- Refresh token rotation
+- Role-based access control
+- Request rate limiting (có thể thêm)
 
 ## 🚀 Development Setup
 
 ### Prerequisites
-- Node.js (v20+)
-- npm hoặc yarn
-
-### Database Setup
-1. Tạo PostgreSQL database
-2. Chạy schema SQL (file `.sql` đã chỉnh sửa) để tạo tables
-3. Configure connection string trong file môi trường
-
-### Environment Variables Example
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/blog_db
-JWT_SECRET=your_jwt_secret_key
-JWT_REFRESH_SECRET=your_refresh_secret_key
+```bash
+Node.js v18+
+npm or yarn
 ```
 
-## 📊 Performance Optimizations
+### Installation
+```bash
+# Clone repository
+git clone <repository-url>
+cd basic-blog-api
 
-### Database Indexes
-- Primary keys và unique constraints
-- Foreign key indexes
-- Composite indexes cho query thường dùng
-- Text search indexes cho title/content
+# Install dependencies
+npm install
 
-### Query Optimizations
-- Pagination cho danh sách bài viết
-- Eager loading cho relationships
-- Select only needed fields
-- Connection pooling
+# Setup environment
+cp .env.example .env
+# Edit .env with your configuration
 
-### Git Workflow
-- Feature branches
-- Code review process
-- Conventional commits
-- Automated testing trước merge
+# Setup database
+npx prisma generate
+npx prisma db push
 
-### API Documentation
-- Swagger/OpenAPI documentation
-- Postman collection
-- Request/Response examples
+# Seed initial data
+npm run init-seed-data
+
+# Start development server  
+npm run start:dev
+```
+
+### Default Accounts (after seeding)
+```
+Admin: admin@blog.com / admin123
+Author: author@blog.com / author123  
+User: user@blog.com / user123
+```
+
+### Environment Variables
+```env
+# Database
+DATABASE_URL="file:./dev.db"
+
+# JWT Configuration
+ACCESS_TOKEN_SECRET="your_access_token_secret"
+REFRESH_TOKEN_SECRET="your_refresh_token_secret"
+ACCESS_TOKEN_EXPIRES_IN="1h"
+REFRESH_TOKEN_EXPIRES_IN="30d"
+
+# Application
+NODE_ENV="development"
+PORT=3000
+```
+
+## 📖 API Documentation
+
+### Swagger Documentation
+- **URL**: `http://localhost:3000/api-docs`
+- **Features**:
+  - Interactive API testing
+  - Request/Response examples
+  - Authentication support
+  - Schema documentation
+
+### Authentication Header
+```
+Authorization: Bearer <access_token>
+```
+
+### Response Format
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Success message"
+}
+```
+
+### Error Response Format
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Error description",
+    "details": { ... }
+  }
+}
+```
+
+## 🛡️ Security Best Practices
+
+### Password Security
+- bcrypt với salt rounds = 12
+- Minimum password length: 6 characters
+- Password strength validation
+
+### JWT Security
+- Short-lived access tokens (1 hour)
+- Refresh token rotation
+- Proper token validation
+- Secure token storage recommendations
+
+### Data Validation
+- Input sanitization
+- Type checking với Zod
+- SQL injection prevention (Prisma ORM)
+- XSS protection
+
+### Access Control
+- Role-based permissions
+- Resource ownership validation
+- Admin-only operations separation
+
+## 📊 Performance Considerations
+
+### Database Optimizations
+- Prisma query optimization
+- Proper indexing (handled by Prisma)
+- Pagination for large datasets
+- Selective field loading
+
+### Caching Strategy
+- Response caching có thể implement
+- Database query caching
+- Static content caching
+
+### Monitoring
+- Request logging với [`LoggingInterceptor`](src/common/interceptor/logging.interceptor.ts)
+- Error tracking
+- Performance metrics
+
+## 🧪 Testing
+
+### Test Structure
+```bash
+# Unit tests
+npm run test
+
+# E2E tests  
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+```
+
+### Test Data
+- Seeding script: [`initialScript/index.ts`](initialScript/index.ts)
+- Sample data for all entities
+- Proper relationships setup
+
+## 🚀 Production Deployment
+
+### Build Process
+```bash
+npm run build
+npm run start:prod
+```
+
+### Database Migration
+```bash
+npx prisma migrate deploy
+```
+
+### Environment Setup
+- Production environment variables
+- Database configuration
+- SSL/TLS setup
+- Process management (PM2, Docker)
 
 ---
 
-**Project Timeline**: 2 weeks  
-**Team**: 2 developers  
-**Tech Stack**: NestJs, ReactJs, PostgreSQL
-**Last Updated**: May 2025
+**Project Info**:
+- **Framework**: NestJS v11
+- **Database**: Prisma + SQLite  
+- **Authentication**: JWT + Refresh Token
+- **Documentation**: Swagger/OpenAPI
+- **Validation**: Zod + nestjs-zod
+- **Last Updated**: June 2025
+
+**Live API**: `http://localhost:3000`  
+**Documentation**: `http://localhost:3000/api-docs`

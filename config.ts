@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { config } from 'dotenv';
-import * as fs from 'fs';
-import * as path from 'path'; 
+import fs from 'fs';
+import  path from 'path'; 
 
 const envPath = path.resolve(process.cwd(), '.env');
 
